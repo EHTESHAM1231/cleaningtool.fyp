@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADRF — Automated Dataset Diagnostics & Repair Framework</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0f1c;
+  --bg2: #0f1623;
+  --bg3: #141d2e;
+  --panel: #1a2337;
+  --panel2: #212941;
+  --border: #2a3447;
+  --border2: #344155;
+  --accent: #00d4ff;
+  --accent2: #7c3aed;
+  --accent3: #f43f5e;
+  --accent4: #10b981;
+  --accent5: #f59e0b;
+  --warn: #fbbf24;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --text: #f8fafc;
+  --text2: #cbd5e1;
+  --text3: #94a3b8;
+  --glow: rgba(0,212,255,0.15);
+  --glow2: rgba(124,58,237,0.15);
+  --glow3: rgba(244,63,94,0.15);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg2: #f8fafc;
+  --bg3: #f1f5f9;
+  --panel: #ffffff;
+  --panel2: #f8fafc;
+  --border: #e2e8f0;
+  --border2: #cbd5e1;
+  --accent: #0ea5e9;
+  --accent2: #7c3aed;
+  --accent3: #f43f5e;
+  --accent4: #10b981;
+  --accent5: #f59e0b;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #64748b;
+  --glow: rgba(14,165,233,0.1);
+  --glow2: rgba(124,58,237,0.1);
+  --glow3: rgba(244,63,94,0.1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: var(--transition);
+}
+
+/* Animated background grid */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(var(--accent) 1px, transparent 1px),
+    linear-gradient(90deg, var(--accent) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.03;
+  pointer-events:none;
+  z-index:0;
+  transition: var(--transition);
+}
+
+[data-theme="light"] body::before {
+  opacity: 0.02;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 0 24px; position:relative; z-index:1; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container { padding: 0 16px; }
+  .header-inner { padding: 12px 16px; flex-wrap: wrap; }
+  .logo-icon-text { 
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  color: var(--bg);
+  border-radius: 8px;
+  box-shadow: 0 0 15px var(--glow);
+}
+  .logo-sub { font-size: 10px; }
+  .header-badge { font-size: 10px; padding: 4px 10px; }
+  .theme-toggle { width: 40px; height: 40px; margin-left: 12px; }
+  .theme-icon { font-size: 16px; }
+  
+  .pipeline-inner { padding: 0 16px; gap: 4px; }
+  .step-btn { padding: 12px 16px; font-size: 12px; }
+  .step-btn .step-num { width: 20px; height: 20px; font-size: 9px; }
+  .step-arrow { font-size: 12px; }
+  
+  .hero-text h1 { font-size: clamp(24px, 8vw, 36px); }
+  .hero-text p { font-size: 14px; }
+  .upload-zone { padding: 40px 20px; }
+  .upload-icon { font-size: 40px; }
+  
+  .cards-grid { grid-template-columns: 1fr; gap: 12px; }
+  .charts-grid { grid-template-columns: 1fr; gap: 16px; }
+  .detail-grid { grid-template-columns: 1fr; gap: 12px; }
+  .metrics-comparison { grid-template-columns: 1fr; gap: 12px; }
+  
+  .health-banner { flex-direction: column; gap: 20px; padding: 20px; }
+  .health-score-circle { width: 80px; height: 80px; }
+  .health-score-circle .score-num { font-size: 24px; }
+  
+  .btn { padding: 10px 20px; font-size: 13px; }
+  .action-bar { gap: 8px; }
+  .action-bar .btn { flex: 1; justify-content: center; }
+  
+  .issue-item { padding: 12px 16px; }
+  .issue-item:hover { transform: none; }
+  
+  .progress-modal { min-width: 320px; padding: 30px 20px; margin: 20px; }
+  .toast { min-width: 280px; margin: 0 16px; }
+}
+
+@media (max-width: 480px) {
+  .container { padding: 0 12px; }
+  .header-inner { padding: 10px 12px; }
+  .logo-icon-text { 
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  color: var(--bg);
+  border-radius: 8px;
+  box-shadow: 0 0 15px var(--glow);
+}
+  .theme-toggle { width: 36px; height: 36px; }
+  .theme-icon { font-size: 14px; }
+  
+  .step-btn { padding: 10px 12px; font-size: 11px; gap: 6px; }
+  .step-arrow { display: none; }
+  
+  .upload-zone { padding: 30px 16px; }
+  .upload-icon { font-size: 32px; }
+  
+  .card { padding: 16px; }
+  .card-value { font-size: 28px; }
+  
+  .btn { padding: 8px 16px; font-size: 12px; }
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.btn:focus,
+.step-btn:focus,
+.theme-toggle:focus,
+.upload-zone:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn:active,
+.step-btn:active,
+.theme-toggle:active {
+  transform: scale(0.98);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: #ffffff;
+    --border2: #e0e0e0;
+    --text3: #000000;
+  }
+  
+  [data-theme="light"] {
+    --border: #000000;
+    --border2: #333333;
+    --text3: #000000;
+  }
+}
+
+/* ── HEADER ── */
+.header {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--panel2) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  transition: var(--transition);
+}
+
+[data-theme="light"] .header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.9) 100%);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-icon {
+  width: 40px; height: 40px;
+  background: var(--accent);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--bg);
+  font-weight: bold;
+  font-size: 20px;
+  box-shadow: 0 0 15px var(--glow);
+  transition: var(--transition);
+}
+
+.logo-icon-text-combined-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  border-radius: 8px;
+  box-shadow: 0 0 15px var(--glow);
+}
+
+.logo-text-header {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--bg);
+  letter-spacing: 1px;
+}
+
+.logo-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px var(--glow);
+}
+.logo-text {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  color: var(--accent);
+}
+.logo-sub { font-size: 11px; color: var(--text3); font-family:'Space Mono',monospace; margin-top: 2px; }
+.header-badge {
+  margin-left: auto;
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 11px;
+  color: var(--accent);
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.theme-toggle {
+  margin-left: 16px;
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover {
+  background: var(--panel);
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+
+.theme-icon {
+  position: absolute;
+  font-size: 18px;
+  transition: var(--transition);
+  opacity: 0;
+  transform: rotate(180deg) scale(0.5);
+}
+
+.theme-icon:first-child {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+[data-theme="light"] .theme-icon:first-child {
+  opacity: 0;
+  transform: rotate(-180deg) scale(0.5);
+}
+
+[data-theme="light"] .theme-icon:last-child {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+/* ── PIPELINE NAV ── */
+.pipeline {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  overflow-x: auto;
+}
+.pipeline-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  white-space: nowrap;
+}
+.step-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.step-btn svg {
+  opacity: 0.7;
+  transition: var(--transition);
+}
+
+.step-btn:hover svg,
+.step-btn.active svg {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.step-btn:hover {
+  color: var(--accent);
+  background: rgba(0,212,255,0.05);
+}
+
+[data-theme="light"] .step-btn:hover {
+  background: rgba(14,165,233,0.05);
+}
+.step-btn .step-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  font-family: 'Space Mono', monospace;
+  transition: all 0.2s;
+}
+.step-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.step-btn.active .step-num {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.step-btn.completed { color: var(--success); }
+.step-btn.completed .step-num {
+  background: var(--success);
+  color: var(--bg);
+  border-color: var(--success);
+}
+.step-arrow { 
+  color: var(--border2); 
+  padding: 0 8px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.step-arrow svg {
+  opacity: 0.5;
+  transition: var(--transition);
+}
+.step-btn.active + .step-arrow svg {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* ── SECTIONS ── */
+.section { display: none; padding: 32px 0; animation: fadeIn 0.3s ease; }
+.section.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── UPLOAD SECTION ── */
+.hero-text {
+  text-align: center;
+  padding: 40px 0 32px;
+}
+.hero-text h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.hero-text p { color: var(--text2); font-size: 15px; max-width: 560px; margin: 0 auto; line-height: 1.6; }
+
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 20px;
+  padding: 60px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--panel);
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, var(--glow) 0%, transparent 70%);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--panel2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,212,255,0.1);
+}
+
+[data-theme="light"] .upload-zone:hover {
+  box-shadow: 0 10px 30px rgba(14,165,233,0.1);
+}
+.upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+.upload-icon { font-size: 52px; margin-bottom: 16px; filter: grayscale(0.3); }
+.upload-zone h3 { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.upload-zone p { color: var(--text2); font-size: 14px; }
+.upload-zone input[type=file] { display: none; }
+.upload-hint { margin-top: 12px; font-size: 12px; color: var(--text3); font-family:'Space Mono',monospace; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px;
+  border: none; border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: var(--transition);
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.btn:hover::before {
+  transform: translateX(100%);
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--glow);
+  background: var(--accent2);
+}
+
+[data-theme="light"] .btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+[data-theme="light"] .btn-primary:hover {
+  background: var(--accent2);
+}
+.btn-secondary {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+.btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-success { background: var(--success); color: var(--bg); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+/* ── CARDS ── */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 24px 0; }
+.card {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--panel2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  transition: var(--transition);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,212,255,0.15);
+}
+
+.card:hover::before { opacity: 1; }
+
+[data-theme="light"] .card:hover {
+  box-shadow: 0 12px 24px rgba(14,165,233,0.15);
+}
+.card-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; font-family:'Space Mono',monospace; margin-bottom: 8px; }
+.card-value { font-size: 32px; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--text); }
+.card-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+/* ── HEALTH SCORE ── */
+.health-banner {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--panel2) 50%, var(--panel3) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.health-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 70%);
+  opacity: 0.3;
+  animation: float 6s ease-in-out infinite;
+}
+.health-banner {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+.health-score-circle {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif;
+  flex-shrink: 0;
+  position: relative;
+}
+.health-score-circle .score-num { font-size: 28px; font-weight: 800; }
+.health-score-circle .score-label { font-size: 11px; color: var(--text2); }
+.grade-A { background: radial-gradient(circle, rgba(82,227,160,0.2) 0%, transparent 70%); border: 3px solid var(--success); }
+.grade-B { background: radial-gradient(circle, rgba(0,245,196,0.2) 0%, transparent 70%); border: 3px solid var(--accent); }
+.grade-C { background: radial-gradient(circle, rgba(247,197,159,0.2) 0%, transparent 70%); border: 3px solid var(--warn); }
+.grade-D, .grade-F { background: radial-gradient(circle, rgba(255,107,107,0.2) 0%, transparent 70%); border: 3px solid var(--danger); }
+.health-info h3 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.health-info p { color: var(--text2); font-size: 14px; }
+
+/* ── ISSUES ── */
+.issues-section { margin: 24px 0; }
+.issues-section h3 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+.issue-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  transition: var(--transition);
+}
+
+.issue-item:hover {
+  border-color: var(--border2);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+[data-theme="light"] .issue-item:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.issue-badge {
+  font-size: 11px; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.badge-high { background: rgba(255,107,107,0.15); color: var(--danger); border: 1px solid rgba(255,107,107,0.3); }
+.badge-medium { background: rgba(247,197,159,0.15); color: var(--warn); border: 1px solid rgba(247,197,159,0.3); }
+.badge-low { background: rgba(0,245,196,0.1); color: var(--accent); border: 1px solid rgba(0,245,196,0.2); }
+.badge-success { background: rgba(82,227,160,0.1); color: var(--success); border: 1px solid rgba(82,227,160,0.2); }
+.issue-name { font-weight: 600; font-size: 14px; }
+.issue-detail { font-size: 13px; color: var(--text2); margin-left: auto; }
+
+/* ── CHARTS ── */
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 20px; margin: 24px 0; }
+.chart-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.chart-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,212,255,0.1);
+}
+
+[data-theme="light"] .chart-card:hover {
+  box-shadow: 0 8px 20px rgba(14,165,233,0.1);
+}
+.chart-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.chart-body { padding: 16px; }
+.chart-body img { width: 100%; height: auto; border-radius: 8px; }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  background: var(--panel2);
+  color: var(--text2);
+  font-weight: 600;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+td { padding: 11px 16px; border-bottom: 1px solid var(--border); color: var(--text); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--panel); }
+
+/* ── REPAIR LOG ── */
+.repair-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.repair-log-item:last-child { border-bottom: none; }
+.log-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.log-icon.success { background: rgba(82,227,160,0.1); }
+.log-action { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.log-detail { font-size: 13px; color: var(--text2); }
+
+/* ── METRICS COMPARISON ── */
+.metrics-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.metric-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.metric-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,212,255,0.1);
+}
+
+[data-theme="light"] .metric-card:hover {
+  box-shadow: 0 6px 16px rgba(14,165,233,0.1);
+}
+.metric-name { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; font-family:'Space Mono',monospace; margin-bottom: 12px; }
+.metric-values { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.metric-val { text-align: center; }
+.metric-val .val { font-size: 26px; font-weight: 700; font-family: 'Syne', sans-serif; }
+.metric-val .lbl { font-size: 10px; color: var(--text3); }
+.metric-arrow { font-size: 20px; }
+.metric-arrow.up { color: var(--success); }
+.metric-arrow.down { color: var(--danger); }
+.metric-delta {
+  margin-top: 8px;
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+.delta-positive { background: rgba(82,227,160,0.1); color: var(--success); }
+.delta-negative { background: rgba(255,107,107,0.1); color: var(--danger); }
+.delta-neutral { background: var(--panel2); color: var(--text3); }
+
+/* ── PROGRESS / MODAL OVERLAY ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,11,20,0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-content {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  backdrop-filter: blur(20px);
+  transition: var(--transition);
+}
+.progress-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(8,11,20,0.85);
+  z-index: 999;
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+.progress-overlay.show { display: flex; }
+.progress-modal {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  min-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  backdrop-filter: blur(20px);
+  transition: var(--transition);
+}
+
+[data-theme="light"] .progress-modal {
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+.spinner {
+  width: 60px; height: 60px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  margin: 0 auto 20px;
+  box-shadow: 0 0 20px var(--glow);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.progress-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.progress-sub { color: var(--text2); font-size: 14px; }
+.progress-steps { margin-top: 20px; text-align: left; }
+.progress-step {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--text3);
+}
+.progress-step.done { color: var(--success); }
+.progress-step.active { color: var(--accent); }
+
+/* ── TOAST ── */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 13px;
+  min-width: 300px;
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; align-items: center; gap: 12px;
+  transition: var(--transition);
+}
+
+.toast:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+[data-theme="light"] .toast:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.toast.success { border-color: var(--success); }
+.toast.error { border-color: var(--danger); }
+@keyframes slideIn { 
+  from { transform: translateX(100%) scale(0.8); opacity:0; } 
+  to { transform: translateX(0) scale(1); opacity:1; } 
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, -30px) rotate(120deg); }
+  66% { transform: translate(-20px, 20px) rotate(240deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.section-title span { color: var(--accent); }
+.section-sub { color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+
+.action-bar {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+/* ── NO DATA ── */
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: var(--text3);
+}
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state p { font-size: 15px; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+/* ── DETAIL ROW ── */
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin: 20px 0; }
+.detail-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  transition: var(--transition);
+}
+
+.detail-panel:hover {
+  border-color: var(--border2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+[data-theme="light"] .detail-panel:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+.detail-panel h4 {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.detail-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.detail-row:last-child { border-bottom: none; }
+.detail-row .key { color: var(--text2); }
+.detail-row .val { font-weight: 600; font-family: 'Space Mono', monospace; font-size: 12px; }
+
+/* ── SPLASH SCREEN ── */
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, var(--bg3) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.8s ease-out, visibility 0.8s ease-out;
+  visibility: visible;
+}
+
+.splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash-content {
+  text-align: center;
+  max-width: 500px;
+  padding: 40px;
+}
+
+.splash-logo {
+  margin-bottom: 30px;
+}
+
+.logo-animation {
+  position: relative;
+  display: inline-block;
+}
+
+.logo-icon-text-combined {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: logoGlow 2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 20px var(--glow));
+}
+
+.logo-image {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px var(--glow));
+  animation: logoGlow 2s ease-in-out infinite alternate;
+}
+
+.logo-image-header {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.logo-text-adrf {
+  font-family: 'Syne', sans-serif;
+  font-size: 60px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 4px;
+  text-shadow: 0 0 30px var(--glow);
+}
+
+.logo-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  animation: pulse 2s ease-in-out infinite;
+  opacity: 0.3;
+}
+
+.splash-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 30px var(--glow);
+}
+
+.splash-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--text2);
+  margin-bottom: 40px;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+.splash-loading {
+  margin-bottom: 40px;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: loadingDot 1.4s ease-in-out infinite both;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+.loading-dots span:nth-child(3) { animation-delay: 0; }
+
+.loading-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text3);
+  font-weight: 400;
+}
+
+.splash-features {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text3);
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.feature-item:nth-child(1) { animation-delay: 0.2s; }
+.feature-item:nth-child(2) { animation-delay: 0.4s; }
+.feature-item:nth-child(3) { animation-delay: 0.6s; }
+
+.feature-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Splash Screen Animations */
+@keyframes logoGlow {
+  from { filter: drop-shadow(0 0 20px var(--glow)); }
+  to { filter: drop-shadow(0 0 30px var(--glow2)); }
+}
+
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+}
+
+@keyframes loadingDot {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Light theme splash screen */
+[data-theme="light"] .splash-screen {
+  background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, #f1f5f9 100%);
+}
+
+[data-theme="light"] .logo-icon {
+  color: var(--accent2);
+  filter: drop-shadow(0 0 20px var(--glow2));
+}
+
+[data-theme="light"] .logo-pulse {
+  border-color: var(--accent2);
+}
+
+[data-theme="light"] .splash-title {
+  color: var(--text);
+  text-shadow: 0 0 20px var(--glow2);
+}
+
+[data-theme="light"] .feature-item svg {
+  color: var(--accent2);
+}
+</style>
+</head>
+<body>
+
+<!-- Splash Screen -->
+<div id="splash-screen" class="splash-screen">
+  <div class="splash-content">
+    <h1 class="splash-title">Automated Dataset Diagnostics</h1>
+    <p class="splash-subtitle">Intelligent Data Repair Framework</p>
+    <div class="splash-loading">
+      <div class="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <p class="loading-text">Initializing intelligent data analysis...</p>
+    </div>
+    <div class="splash-features">
+      <div class="feature-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+        <span>Automated Diagnostics</span>
+      </div>
+      <div class="feature-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <span>Intelligent Repair</span>
+      </div>
+      <div class="feature-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        <span>ML-Powered Analysis</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <line x1="9" y1="9" x2="15" y2="9"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">ADRF</div>
+        <div class="logo-sub">Automated Dataset Diagnostics & Repair</div>
+      </div>
+    </div>
+    <div class="header-badge">FYP 2024–2025</div>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <span class="theme-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+        </svg>
+      </span>
+      <span class="theme-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </span>
+    </button>
+  </div>
+</header>
+
+<!-- PIPELINE NAV -->
+<nav class="pipeline">
+  <div class="pipeline-inner">
+    <button class="step-btn active" onclick="goToStep(1)" id="step-btn-1">
+      <span class="step-num">1</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Upload Dataset
+    </button>
+    <span class="step-arrow">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </span>
+    <button class="step-btn" onclick="goToStep(2)" id="step-btn-2">
+      <span class="step-num">2</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      Diagnostics
+    </button>
+    <span class="step-arrow">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </span>
+    <button class="step-btn" onclick="goToStep(3)" id="step-btn-3">
+      <span class="step-num">3</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12h18m-9-9v18"/>
+      </svg>
+      Repair
+    </button>
+    <span class="step-arrow">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </span>
+    <button class="step-btn" onclick="goToStep(4)" id="step-btn-4">
+      <span class="step-num">4</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      Evaluate
+    </button>
+    <span class="step-arrow">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </span>
+    <button class="step-btn" onclick="goToStep(5)" id="step-btn-5">
+      <span class="step-num">5</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      Report
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+<!-- ────────────── STEP 1: UPLOAD ────────────── -->
+<section class="section active" id="section-1">
+<div class="container">
+  <div class="hero-text">
+    <h1>Automated Dataset<br>Diagnostics & Repair</h1>
+    <p>Upload your CSV dataset to automatically detect quality issues, apply intelligent repairs, and measure performance improvements.</p>
+  </div>
+
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" accept=".csv" onchange="handleFileSelect(this)">
+    <div class="upload-icon">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+    </div>
+    <h3>Drop your CSV file here</h3>
+    <p>or click to browse files</p>
+    <div class="upload-hint">Supports any CSV file · Max 500MB · Any encoding accepted</div>
+  </div>
+
+  <div id="upload-result" style="display:none; margin-top:24px;">
+    <div class="cards-grid" id="meta-cards"></div>
+    <div style="margin-top:20px;">
+      <h3 class="section-title">Dataset <span>Preview</span></h3>
+      <div class="table-wrap" id="preview-table"></div>
+    </div>
+    <div class="action-bar" style="margin-top:24px;">
+      <button class="btn btn-primary" onclick="runDiagnostics()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Run Diagnostics →
+      </button>
+      <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">Upload Different File</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-container">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-text">Automated Dataset Diagnostics</div>
+        <div class="logo-sub">Intelligent Data Repair Framework</div>
+      </div>
+      <div class="header-badge">FYP 2024–2025</div>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span class="theme-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+          </svg>
+        </span>
+        <span class="theme-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  </section>
+
+<!-- ────────────── STEP 2: DIAGNOSTICS ────────────── -->
+<section class="section" id="section-2">
+<div class="container">
+  <h2 class="section-title">Dataset <span>Diagnostics</span></h2>
+  <p class="section-sub">Comprehensive analysis of data quality issues and patterns.</p>
+  <div id="diagnostics-content">
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+      </div>
+      <p>Upload a dataset and run diagnostics to see results.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ────────────── STEP 3: REPAIR ────────────── -->
+<section class="section" id="section-3">
+<div class="container">
+  <h2 class="section-title">Dataset <span>Repair</span></h2>
+  <p class="section-sub">Targeted interventions to fix identified data quality issues.</p>
+  <div id="repair-content">
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h18m-9-9v18"/>
+        </svg>
+      </div>
+      <p>Run diagnostics first, then apply repair.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ────────────── STEP 4: EVALUATE ────────────── -->
+<section class="section" id="section-4">
+<div class="container">
+  <h2 class="section-title">Model <span>Evaluation</span></h2>
+  <p class="section-sub">Train ML models before and after repair to quantify improvement.</p>
+  <div id="evaluation-content">
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </div>
+      <p>Complete repair step to enable model evaluation.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ────────────── STEP 5: REPORT ────────────── -->
+<section class="section" id="section-5">
+<div class="container">
+  <h2 class="section-title">Final <span>Report</span></h2>
+  <p class="section-sub">Comprehensive summary of all diagnostics, repairs, and performance gains.</p>
+  <div id="report-content">
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <p>Complete all pipeline steps to generate your report.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+</main>
+
+<!-- ENCODING HELP MODAL -->
+<div class="modal-overlay" id="encoding-help-modal" style="display:none;">
+  <div class="modal-content" style="max-width:600px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <h3 style="margin:0; color:var(--text);">How to Fix CSV Encoding Issues</h3>
+      <button onclick="closeEncodingHelp()" style="background:none; border:none; color:var(--text2); cursor:pointer; font-size:24px;">×</button>
+    </div>
+    
+    <div style="background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <div style="display:flex; align-items: center; gap: 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div>
+          <div style="font-weight: 600; color: var(--warn); margin-bottom: 4px;">Common Encoding Issues</div>
+          <div style="font-size: 14px; color: var(--text2);">Your CSV file contains special characters that aren't compatible with UTF-8 encoding. This happens when files are saved with different character encodings. Any CSV file format is accepted - no restrictions on delimiters, structure, or content.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <h4 style="margin-bottom:16px; color:var(--text);">📋 Detailed Step-by-Step Solutions</h4>
+      
+      <div style="background:var(--panel); border-radius:8px; padding:16px; margin-bottom:16px;">
+        <div style="font-weight:600; margin-bottom:12px; color:var(--accent);">🔧 Method 1: Microsoft Excel (Recommended)</div>
+        <div style="background: var(--success-bg); border: 1px solid var(--success); border-radius: 6px; padding: 12px; margin-bottom:12px; font-size:13px;">
+          <strong>⭐ Best for:</strong> Most Windows users, large files, complex data
+        </div>
+        <ol style="margin:0; padding-left:20px; color:var(--text2); font-size:14px; line-height:1.8;">
+          <li><strong>Open Excel</strong> → <strong>File</strong> → <strong>Open</strong> → Select your CSV file</li>
+          <li><strong>File</strong> → <strong>Save As</strong> (or press F12)</li>
+          <li><strong>Choose location</strong> where you want to save the file</li>
+          <li><strong>File name:</strong> Give it a new name (e.g., "mydata_utf8.csv")</li>
+          <li><strong>Save as type:</strong> Select <strong>"CSV UTF-8 (Comma delimited) (*.csv)"</strong></li>
+          <li><strong>Click Save</strong></li>
+          <li><strong>Re-upload</strong> the new UTF-8 file to this system</li>
+        </ol>
+        <div style="margin-top:12px; padding:8px; background: var(--bg); border-radius:4px; font-size:12px; color:var(--text3);">
+          <strong>💡 Tip:</strong> If you see a warning about features, click "Yes" to continue. The UTF-8 version will work perfectly.
+        </div>
+      </div>
+
+      <div style="background:var(--panel); border-radius:8px; padding:16px; margin-bottom:16px;">
+        <div style="font-weight:600; margin-bottom:12px; color:var(--accent);">🌐 Method 2: Google Sheets (Free & Easy)</div>
+        <div style="background: var(--success-bg); border: 1px solid var(--success); border-radius: 6px; padding: 12px; margin-bottom:12px; font-size:13px;">
+          <strong>⭐ Best for:</strong> Quick fixes, no software installation, any device
+        </div>
+        <ol style="margin:0; padding-left:20px; color:var(--text2); font-size:14px; line-height:1.8;">
+          <li><strong>Go to</strong> <a href="https://sheets.google.com" target="_blank" style="color:var(--accent);">sheets.google.com</a></li>
+          <li><strong>File</strong> → <strong>Import</strong> → <strong>Upload</strong> → Select your CSV file</li>
+          <li><strong>Wait for upload</strong> (may take a moment for large files)</li>
+          <li><strong>File</strong> → <strong>Download</strong> → <strong>Comma-separated values (.csv)</strong></li>
+          <li><strong>The downloaded file</strong> will automatically be UTF-8 encoded</li>
+          <li><strong>Re-upload</strong> this new file to our system</li>
+        </ol>
+        <div style="margin-top:12px; padding:8px; background: var(--bg); border-radius:4px; font-size:12px; color:var(--text3);">
+          <strong>💡 Tip:</strong> Google Sheets handles encoding automatically - no technical settings needed!
+        </div>
+      </div>
+
+      <div style="background:var(--panel); border-radius:8px; padding:16px; margin-bottom:16px;">
+        <div style="font-weight:600; margin-bottom:12px; color:var(--accent);">📝 Method 3: Notepad++ (Advanced Users)</div>
+        <div style="background: var(--success-bg); border: 1px solid var(--success); border-radius: 6px; padding: 12px; margin-bottom:12px; font-size:13px;">
+          <strong>⭐ Best for:</strong> Technical users, precise control, very large files
+        </div>
+        <ol style="margin:0; padding-left:20px; color:var(--text2); font-size:14px; line-height:1.8;">
+          <li><strong>Download and install</strong> <a href="https://notepad-plus-plus.org" target="_blank" style="color:var(--accent);">Notepad++</a> (free)</li>
+          <li><strong>Open Notepad++</strong> → <strong>File</strong> → <strong>Open</strong> → Select your CSV</li>
+          <li><strong>Look at bottom status bar</strong> - you'll see current encoding (e.g., ANSI)</li>
+          <li><strong>File</strong> → <strong>Save As</strong></li>
+          <li><strong>Encoding:</strong> Change from current to <strong>UTF-8</strong></li>
+          <li><strong>Save</strong> the file with a new name</li>
+          <li><strong>Re-upload</strong> the UTF-8 version</li>
+        </ol>
+        <div style="margin-top:12px; padding:8px; background: var(--bg); border-radius:4px; font-size:12px; color:var(--text3);">
+          <strong>💡 Tip:</strong> The encoding dropdown is near the bottom of the Save As dialog. Look for "Encoding" field.
+        </div>
+      </div>
+
+      <div style="background:var(--panel); border-radius:8px; padding:16px;">
+        <div style="font-weight:600; margin-bottom:12px; color:var(--accent);">⚡ Method 4: Quick Copy-Paste (Emergency Fix)</div>
+        <div style="background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 6px; padding: 12px; margin-bottom:12px; font-size:13px;">
+          <strong>⚠️ Use only if:</strong> Other methods fail, file is small (<10,000 rows)
+        </div>
+        <ol style="margin:0; padding-left:20px; color:var(--text2); font-size:14px; line-height:1.8;">
+          <li><strong>Open CSV</strong> in Excel or any spreadsheet program</li>
+          <li><strong>Select all data</strong> (Ctrl+A or Cmd+A)</li>
+          <li><strong>Copy</strong> (Ctrl+C or Cmd+C)</li>
+          <li><strong>Open new blank workbook</strong></li>
+          <li><strong>Paste data</strong> (Ctrl+V or Cmd+V)</li>
+          <li><strong>Save As</strong> → <strong>CSV UTF-8</strong> (see Method 1)</li>
+        </ol>
+      </div>
+    </div>
+
+    <div style="background: var(--success-bg); border: 1px solid var(--success); border-radius: 8px; padding: 16px;">
+      <div style="display:flex; align-items: center; gap: 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <div>
+          <div style="font-weight: 600; color: var(--success); margin-bottom: 4px;">✅ Quick Tip</div>
+          <div style="font-size: 14px; color: var(--text2);">If you're still having issues, try copying the data from your CSV and pasting it into a new spreadsheet, then save as CSV UTF-8.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="progress-overlay" id="progress-overlay">
+  <div class="progress-modal">
+    <div class="spinner"></div>
+    <div class="progress-title" id="progress-title">Processing...</div>
+    <div class="progress-sub" id="progress-sub">Please wait</div>
+    <div class="progress-steps" id="progress-steps"></div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── THEME ──
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+}
+
+// Initialize theme on page load
+initTheme();
+
+// ── STATE ──
+let state = {
+  sessionId: null,
+  filename: null,
+  diagnosticsData: null,
+  repairData: null,
+  evaluationData: null,
+  completedSteps: new Set()
+};
+
+// ── NAVIGATION ──
+function goToStep(n) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + n).classList.add('active');
+  document.querySelectorAll('.step-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i + 1 === n);
+  });
+  window.scrollTo(0, 0);
+}
+
+function markStepComplete(n) {
+  state.completedSteps.add(n);
+  const btn = document.getElementById('step-btn-' + n);
+  if (btn) btn.classList.add('completed');
+}
+
+// ── UPLOAD ──
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+});
+
+function handleFileSelect(input) {
+  if (input.files[0]) uploadFile(input.files[0]);
+}
+
+async function uploadFile(file) {
+  if (!file.name.toLowerCase().endsWith('.csv')) { showToast('Please upload a CSV file', 'error'); return; }
+  
+  // Encoding restrictions removed - accept any CSV file
+  
+  showLoading('Uploading Dataset', 'Parsing CSV and extracting metadata...');
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    hideLoading();
+    if (data.error) { 
+      showToast(data.error, 'error'); 
+      return; 
+    }
+    state.sessionId = data.session_id;
+    state.filename = data.filename;
+    markStepComplete(1);
+    renderUploadResult(data);
+    showToast('Dataset uploaded successfully!', 'success');
+  } catch(e) { hideLoading(); showToast('Upload failed: ' + e.message, 'error'); }
+}
+
+function renderUploadResult(data) {
+  document.getElementById('upload-result').style.display = 'block';
+  // Meta cards
+  document.getElementById('meta-cards').innerHTML = `
+    <div class="card"><div class="card-label">File Name</div><div class="card-value" style="font-size:18px;font-family:'Space Mono',monospace">${data.filename}</div></div>
+    <div class="card"><div class="card-label">Total Rows</div><div class="card-value">${data.rows.toLocaleString()}</div><div class="card-sub">data samples</div></div>
+    <div class="card"><div class="card-label">Total Columns</div><div class="card-value">${data.columns}</div><div class="card-sub">features</div></div>
+    <div class="card"><div class="card-label">Column Types</div><div class="card-value">${Object.values(data.dtypes).filter(t=>t.includes('int')||t.includes('float')).length}</div><div class="card-sub">numeric features</div></div>
+  `;
+  // Preview table
+  if (data.preview && data.preview.length > 0) {
+    const cols = data.column_names;
+    let html = '<table><thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+    data.preview.forEach(row => {
+      html += '<tr>' + cols.map(c => `<td>${row[c] !== undefined ? String(row[c]).slice(0,50) : ''}</td>`).join('') + '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('preview-table').innerHTML = html;
+  }
+}
+
+// ── DIAGNOSTICS ──
+async function runDiagnostics() {
+  if (!state.sessionId) { showToast('Upload a dataset first', 'error'); return; }
+  if (state.filename.size > 500 * 1024 * 1024) {
+    showToast('File size exceeds 500MB limit', 'error');
+    return;
+  }
+  showLoading('Running Diagnostics', 'Analysing dataset quality...', [
+    'Extracting metadata',
+    'Checking missing values',
+    'Detecting class imbalance',
+    'Scanning for outliers',
+    'Analysing correlations',
+    'Estimating label noise',
+    'Computing health score'
+  ]);
+  try {
+    const res = await fetch('/api/diagnose', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session_id: state.sessionId})
+    });
+    const data = await res.json();
+    hideLoading();
+    if (data.error) { showToast('Diagnostics error: ' + data.error, 'error'); return; }
+    state.diagnosticsData = data;
+    markStepComplete(2);
+    renderDiagnostics(data.results, data.charts);
+    goToStep(2);
+    showToast('Diagnostics complete!', 'success');
+  } catch(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); }
+}
+
+function renderDiagnostics(results, charts) {
+  const health = results.health_score || {};
+  const issues = results.issues_summary || {};
+  const meta = results.metadata || {};
+  const gradeClass = 'grade-' + (health.grade || 'C');
+  const scoreColor = health.score >= 80 ? 'var(--success)' : health.score >= 50 ? 'var(--warn)' : 'var(--danger)';
+
+  let issueRows = '';
+  (issues.all_issues || []).forEach(iss => {
+    issueRows += `<div class="issue-item">
+      <span class="issue-badge badge-${iss.severity}">${iss.severity}</span>
+      <span class="issue-name">${iss.type}</span>
+      <span class="issue-detail">${iss.detail}</span>
+    </div>`;
+  });
+  if (!issueRows) issueRows = '<div class="issue-item"><span class="issue-badge badge-success">CLEAN</span><span class="issue-name">No significant issues detected</span></div>';
+
+  // Build detail panels
+  const mv = results.missing_values || {};
+  const dup = results.duplicates || {};
+  const out = results.outliers || {};
+  const ci = results.class_imbalance || {};
+  const skew = results.distribution_skew || {};
+  const corr = results.feature_correlation || {};
+  const ln = results.label_noise || {};
+  const cf = results.constant_features || {};
+
+  let chartsHtml = '';
+  const chartTitles = {
+    health_radar: 'Dataset Health Radar',
+    missing_values: 'Missing Values',
+    class_imbalance: 'Class Distribution',
+    correlation: 'Feature Correlation Heatmap',
+    outliers: 'Outlier Distribution',
+    skewness: 'Feature Skewness'
+  };
+  Object.entries(charts || {}).forEach(([key, b64]) => {
+    chartsHtml += `<div class="chart-card">
+      <div class="chart-header">${chartTitles[key] || key}</div>
+      <div class="chart-body"><img src="data:image/png;base64,${b64}" alt="${key} chart"></div>
+    </div>`;
+  });
+
+  document.getElementById('diagnostics-content').innerHTML = `
+    <div class="health-banner">
+      <div class="health-score-circle ${gradeClass}">
+        <div class="score-num" style="color:${scoreColor}">${health.score || 0}</div>
+        <div class="score-label">/ 100</div>
+      </div>
+      <div class="health-info">
+        <h3>Dataset Health: Grade ${health.grade || '?'}</h3>
+        <p>Your dataset has ${(issues.all_issues||[]).length} issues detected across ${meta.columns || 0} features and ${meta.rows || 0} samples.<br>
+        High: ${(issues.high||[]).length} &nbsp;·&nbsp; Medium: ${(issues.medium||[]).length} &nbsp;·&nbsp; Low: ${(issues.low||[]).length}</p>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="prepareRepair()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18m-9-9v18"/>
+          </svg>
+          Apply Repair →
+        </button>
+      </div>
+    </div>
+
+    <div class="issues-section">
+      <h3>Detected Issues</h3>
+      ${issueRows}
+    </div>
+
+    <hr class="divider">
+    <h3 class="section-title" style="font-size:16px;">Diagnostic <span>Charts</span></h3>
+    <div class="charts-grid">${chartsHtml || '<p style="color:var(--text3)">No charts generated.</p>'}</div>
+
+    <hr class="divider">
+    <h3 class="section-title" style="font-size:16px;">Detailed <span>Findings</span></h3>
+    <div class="detail-grid">
+      <div class="detail-panel">
+        <h4>Missing Values <span class="issue-badge badge-${mv.severity||'none'}" style="font-size:10px">${mv.severity||'none'}</span></h4>
+        <div class="detail-row"><span class="key">Total Missing</span><span class="val">${mv.total_missing||0}</span></div>
+        <div class="detail-row"><span class="key">Columns Affected</span><span class="val">${mv.columns_affected||0}</span></div>
+        ${Object.entries(mv.per_column||{}).slice(0,5).map(([col,v])=>`<div class="detail-row"><span class="key">${col}</span><span class="val">${v.percentage}%</span></div>`).join('')}
+      </div>
+      <div class="detail-panel">
+        <h4>Duplicates <span class="issue-badge badge-${dup.severity||'none'}" style="font-size:10px">${dup.severity||'none'}</span></h4>
+        <div class="detail-row"><span class="key">Duplicate Rows</span><span class="val">${dup.duplicate_rows||0}</span></div>
+        <div class="detail-row"><span class="key">Percentage</span><span class="val">${dup.percentage||0}%</span></div>
+      </div>
+      <div class="detail-panel">
+        <h4>Outliers <span class="issue-badge badge-${out.severity||'none'}" style="font-size:10px">${out.severity||'none'}</span></h4>
+        <div class="detail-row"><span class="key">Total Outliers</span><span class="val">${out.total_outliers||0}</span></div>
+        <div class="detail-row"><span class="key">Columns Affected</span><span class="val">${out.columns_affected||0}</span></div>
+      </div>
+      <div class="detail-panel">
+        <h4>Class Imbalance <span class="issue-badge badge-${(ci.severity||'none')}" style="font-size:10px">${ci.severity||'N/A'}</span></h4>
+        <div class="detail-row"><span class="key">Target Column</span><span class="val">${ci.target_column||'Not detected'}</span></div>
+        <div class="detail-row"><span class="key">Imbalance Ratio</span><span class="val">${ci.imbalance_ratio||'—'}x</span></div>
+      </div>
+      <div class="detail-panel">
+        <h4>Skewed Features <span class="issue-badge badge-${skew.severity||'none'}" style="font-size:10px">${skew.severity||'none'}</span></h4>
+        <div class="detail-row"><span class="key">Skewed Columns</span><span class="val">${skew.total_skewed||0}</span></div>
+        ${Object.entries(skew.skewed_columns||{}).slice(0,3).map(([col,v])=>`<div class="detail-row"><span class="key">${col}</span><span class="val">${v.skewness} (${v.direction})</span></div>`).join('')}
+      </div>
+      <div class="detail-panel">
+        <h4>Correlation <span class="issue-badge badge-${corr.severity||'none'}" style="font-size:10px">${corr.severity||'none'}</span></h4>
+        <div class="detail-row"><span class="key">High Corr. Pairs</span><span class="val">${(corr.high_correlation_pairs||[]).length}</span></div>
+        ${(corr.high_correlation_pairs||[]).slice(0,3).map(p=>`<div class="detail-row"><span class="key">${p.feature1} ↔ ${p.feature2}</span><span class="val">${p.correlation}</span></div>`).join('')}
+      </div>
+      <div class="detail-panel">
+        <h4>Label Noise <span class="issue-badge badge-${ln.severity||'none'}" style="font-size:10px">${ln.severity||'N/A'}</span></h4>
+        <div class="detail-row"><span class="key">Est. Noise</span><span class="val">${ln.estimated_noise_pct !== undefined ? ln.estimated_noise_pct + '%' : ln.message||'—'}</span></div>
+        <div class="detail-row"><span class="key">Noisy Samples</span><span class="val">${ln.noisy_samples||'—'}</span></div>
+      </div>
+      <div class="detail-panel">
+        <h4>Constant Features <span class="issue-badge badge-${cf.severity||'none'}" style="font-size:10px">${cf.severity||'none'}</span></h4>
+        <div class="detail-row"><span class="key">Constant</span><span class="val">${(cf.constant_features||[]).length}</span></div>
+        <div class="detail-row"><span class="key">Near-Constant</span><span class="val">${(cf.near_constant_features||[]).length}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+// ── REPAIR ──
+async function prepareRepair() {
+  goToStep(3);
+  document.getElementById('repair-content').innerHTML = `
+    <div class="health-banner" style="flex-direction:column; align-items:flex-start; gap:16px;">
+      <h3 style="font-family:'Syne',sans-serif;">Ready to Apply Repairs</h3>
+      <p style="color:var(--text2)">The system will carefully analyze each column and use existing values from the same column for imputation. Only when no suitable existing values are found will NULL be used as fallback. No artificial words like "nan" will be added. <strong>IMPORTANT: No columns will be dropped</strong> - all original features are preserved with intelligent processing.</p>
+      <button class="btn btn-primary" onclick="runRepair()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="12" y1="3" x2="12" y2="21"/>
+        </svg>
+        Apply All Repairs
+      </button>
+    </div>
+  `;
+}
+
+async function runRepair() {
+  if (!state.sessionId) return;
+  showLoading('Applying Repairs', 'Running intelligent data repair pipeline...', [
+    'Deep dataset analysis and pattern detection',
+    'Column characteristic analysis (ID/categorical/temporal)',
+    'Careful dataset analysis and pattern detection',
+    'Using existing column values first, NULL as fallback',
+    'Advanced outlier detection and capping',
+    'Precise duplicate identification',
+    'Data type validation and correction',
+    'Column consistency verification',
+    'Final quality assurance and integrity checks'
+  ]);
+  try {
+    const res = await fetch('/api/repair', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        session_id: state.sessionId,
+        preserve_columns: true,
+        drop_columns: false,
+        advanced_cleaning: true,
+        imputation_strategy: {
+          text: "NULL",
+          numeric: 0,
+          method: "intelligent",
+          context_aware: true
+        },
+        outlier_detection: {
+          method: "iqr_zscore",
+          sensitivity: "medium",
+          preserve_outliers: false
+        },
+        duplicate_detection: {
+          method: "fuzzy_matching",
+          similarity_threshold: 0.95
+        },
+        quality_assurance: {
+          consistency_checks: true,
+          data_type_validation: true,
+          integrity_verification: true,
+          column_format_consistency: true,
+          same_data_type_per_column: true,
+          format_standardization: true
+        },
+        column_specific_processing: {
+          enforce_column_consistency: true,
+          maintain_same_format: true,
+          detect_mixed_data_types: true,
+          standardize_column_formats: true
+        }
+      })
+    });
+    const data = await res.json();
+    hideLoading();
+    if (data.error) { showToast('Repair error: ' + data.error, 'error'); return; }
+    state.repairData = data;
+    markStepComplete(3);
+    renderRepair(data);
+    showToast('Dataset repaired successfully!', 'success');
+  } catch(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); }
+}
+
+function renderRepair(data) {
+  const log = data.repair_log || [];
+  const orig = data.original_shape || {};
+  const rep = data.repaired_shape || {};
+
+  let logHtml = log.map(item => `
+    <div class="repair-log-item">
+      <div class="log-icon success">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div>
+        <div class="log-action">${item.action}</div>
+        <div class="log-detail">${item.details}</div>
+      </div>
+    </div>
+  `).join('');
+  if (!logHtml) logHtml = '<p style="color:var(--text3)">No repairs were necessary.</p>';
+
+  document.getElementById('repair-content').innerHTML = `
+    <div style="background: var(--success-bg); border: 1px solid var(--success); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <div>
+          <div style="font-weight: 600; color: var(--success); margin-bottom: 4px;">Advanced Cleaning Applied Successfully</div>
+          <div style="font-size: 14px; color: var(--text2); margin-bottom: 8px;">High-accuracy data repair with intelligent processing and consistency verification:</div>
+          <div style="font-size: 13px; color: var(--text3); padding: 12px; background: var(--bg); border-radius: 4px; border-left: 3px solid var(--success);">
+            <div style="margin-bottom: 6px;"><strong>Intelligent Analysis Applied:</strong></div>
+            <div>• Deep dataset pattern detection</div>
+            <div>• Column characteristic analysis (ID/categorical/temporal)</div>
+            <div>• Careful column analysis before imputation</div>
+            <div>• Using existing column values first</div>
+            <div>• NULL only as fallback option</div>
+            <div>• No artificial words (nan, unknown, etc.)</div>
+            <div>• Existing value frequency analysis</div>
+            <div>• Context-aware value selection</div>
+            <div>• Advanced outlier detection (IQR + Z-score)</div>
+            <div>• Quality assurance & integrity checks</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cards-grid">
+      <div class="card"><div class="card-label">Original Shape</div><div class="card-value">${orig.rows || '?'} × ${orig.columns || '?'}</div><div class="card-sub">rows × columns</div></div>
+      <div class="card"><div class="card-label">Repaired Shape</div><div class="card-value" style="font-size:20px;color:var(--success)">${rep.rows || '?'} × ${rep.columns || '?'}</div><div class="card-sub">rows × columns</div></div>
+      <div class="card"><div class="card-label">Actions Applied</div><div class="card-value">${log.length}</div><div class="card-sub">repair operations</div></div>
+    </div>
+
+    <hr class="divider">
+    <h3 class="section-title" style="font-size:16px;">Repair <span>Log</span></h3>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;">
+      ${logHtml}
+    </div>
+
+    <div class="action-bar" style="margin-top:24px;">
+      <button class="btn btn-primary" onclick="runEvaluation()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Evaluate Models →
+      </button>
+      <a class="btn btn-secondary" href="/api/download_repaired?session_id=${state.sessionId}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download Repaired CSV
+      </a>
+    </div>
+  `;
+}
+
+// ── EVALUATION ──
+async function runEvaluation() {
+  if (!state.sessionId) return;
+  goToStep(4);
+  showLoading('Training Models', 'Training and evaluating ML models...', [
+    'Preparing features',
+    'Training Random Forest',
+    'Training Logistic Regression',
+    'Training Gradient Boosting',
+    'Running cross-validation',
+    'Computing metrics',
+    'Comparing before vs after'
+  ]);
+  try {
+    const res = await fetch('/api/evaluate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session_id: state.sessionId})
+    });
+    const data = await res.json();
+    hideLoading();
+    if (data.error) { showToast('Evaluation error: ' + data.error, 'error'); return; }
+    state.evaluationData = data;
+    markStepComplete(4);
+    renderEvaluation(data);
+    showToast('Model evaluation complete!', 'success');
+  } catch(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); }
+}
+
+function renderEvaluation(data) {
+  const before = data.before || {};
+  const after = data.after || {};
+  const comparison = data.comparison || {};
+  const improvement = comparison.improvement || {};
+
+  let metricsHtml = '';
+  Object.entries(improvement).forEach(([metric, vals]) => {
+    const improved = vals.improved;
+    const delta = vals.delta;
+    const deltaClass = improved ? 'delta-positive' : delta < 0 ? 'delta-negative' : 'delta-neutral';
+    const arrow = improved ? '↑' : delta < 0 ? '↓' : '→';
+    const arrowClass = improved ? 'up' : 'down';
+    metricsHtml += `
+      <div class="metric-card">
+        <div class="metric-name">${metric.replace(/_/g,' ')}</div>
+        <div class="metric-values">
+          <div class="metric-val"><div class="val" style="color:var(--danger)">${vals.before}</div><div class="lbl">Before</div></div>
+          <div class="metric-arrow ${arrowClass}">${arrow}</div>
+          <div class="metric-val"><div class="val" style="color:var(--success)">${vals.after}</div><div class="lbl">After</div></div>
+        </div>
+        <div class="metric-delta ${deltaClass}">${delta > 0 ? '+' : ''}${(delta*100).toFixed(2)}%</div>
+      </div>`;
+  });
+
+  let beforeModels = '';
+  Object.entries(before.models || {}).forEach(([name, m]) => {
+    beforeModels += `<div class="detail-row"><span class="key">${name}</span><span class="val">${m.accuracy !== undefined ? 'Acc: '+m.accuracy : m.r2_score !== undefined ? 'R²: '+m.r2_score : 'Error'}</span></div>`;
+  });
+  let afterModels = '';
+  Object.entries(after.models || {}).forEach(([name, m]) => {
+    afterModels += `<div class="detail-row"><span class="key">${name}</span><span class="val" style="color:var(--success)">${m.accuracy !== undefined ? 'Acc: '+m.accuracy : m.r2_score !== undefined ? 'R²: '+m.r2_score : 'Error'}</span></div>`;
+  });
+
+  let chartHtml = '';
+  if (data.comparison_chart) {
+    chartHtml = `<div class="chart-card" style="margin:20px 0;">
+      <div class="chart-header">Before vs After Comparison</div>
+      <div class="chart-body"><img src="data:image/png;base64,${data.comparison_chart}" alt="Comparison chart"></div>
+    </div>`;
+  }
+
+  document.getElementById('evaluation-content').innerHTML = `
+    <h3 class="section-title" style="font-size:16px;">Performance <span>Improvement</span></h3>
+    <div class="metrics-comparison">${metricsHtml || '<p style="color:var(--text3)">Run repair first to compare metrics.</p>'}</div>
+
+    ${chartHtml}
+
+    <hr class="divider">
+    <h3 class="section-title" style="font-size:16px;">Model <span>Results</span></h3>
+    <div class="detail-grid">
+      <div class="detail-panel">
+        <h4>Before Repair · ${before.best_model || 'Best Model'}</h4>
+        <div class="detail-row"><span class="key">Dataset Size</span><span class="val">${before.rows || '?'} rows</span></div>
+        <div class="detail-row"><span class="key">Features</span><span class="val">${before.features || '?'}</span></div>
+        ${beforeModels}
+      </div>
+      <div class="detail-panel">
+        <h4>After Repair · ${after.best_model || 'Best Model'}</h4>
+        <div class="detail-row"><span class="key">Dataset Size</span><span class="val">${after.rows || '?'} rows</span></div>
+        <div class="detail-row"><span class="key">Features</span><span class="val">${after.features || '?'}</span></div>
+        ${afterModels}
+      </div>
+    </div>
+
+    <div class="action-bar" style="margin-top:24px;">
+      <button class="btn btn-primary" onclick="generateReport()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <line x1="9" y1="9" x2="15" y2="9"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+        Generate Final Report →
+      </button>
+    </div>
+  `;
+}
+
+// ── REPORT ──
+function generateReport() {
+  goToStep(5);
+  markStepComplete(5);
+
+  const diag = state.diagnosticsData?.results || {};
+  const health = diag.health_score || {};
+  const repair = state.repairData || {};
+  const evaluation = state.evaluationData || {};
+  const improvement = evaluation.comparison?.improvement || {};
+
+  const now = new Date().toLocaleString();
+  let improvHtml = Object.entries(improvement).map(([m, v]) =>
+    `<div class="detail-row"><span class="key">${m.replace(/_/g,' ')}</span><span class="val" style="color:${v.improved?'var(--success)':'var(--danger)'}">${v.before} → ${v.after} (${v.delta>0?'+':''}${(v.delta*100).toFixed(2)}%)</span></div>`
+  ).join('');
+
+  document.getElementById('report-content').innerHTML = `
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Final Report</div>
+          <h2 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;">Automated Dataset Diagnostics &amp; Repair</h2>
+          <p style="color:var(--text2);margin-top:4px;">Dataset: ${state.filename || 'Unknown'} &nbsp;·&nbsp; Generated: ${now}</p>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:40px;font-weight:800;font-family:'Syne',sans-serif;color:${health.score>=80?'var(--success)':health.score>=50?'var(--warn)':'var(--danger)'}">${health.score || 0}</div>
+          <div style="font-size:13px;color:var(--text2)">Health Score / Grade ${health.grade || '?'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-panel">
+        <h4>Dataset Summary</h4>
+        <div class="detail-row"><span class="key">Filename</span><span class="val">${state.filename || '—'}</span></div>
+        <div class="detail-row"><span class="key">Rows (original)</span><span class="val">${diag.metadata?.rows || '—'}</span></div>
+        <div class="detail-row"><span class="key">Columns (original)</span><span class="val">${diag.metadata?.columns || '—'}</span></div>
+        <div class="detail-row"><span class="key">Numeric Features</span><span class="val">${diag.metadata?.numeric_features || '—'}</span></div>
+        <div class="detail-row"><span class="key">Categorical Features</span><span class="val">${diag.metadata?.categorical_features || '—'}</span></div>
+      </div>
+      <div class="detail-panel">
+        <h4>Issues Detected</h4>
+        <div class="detail-row"><span class="key">Total Issues</span><span class="val">${(diag.issues_summary?.all_issues||[]).length}</span></div>
+        <div class="detail-row"><span class="key">High Severity</span><span class="val" style="color:var(--danger)">${(diag.issues_summary?.high||[]).length}</span></div>
+        <div class="detail-row"><span class="key">Medium Severity</span><span class="val" style="color:var(--warn)">${(diag.issues_summary?.medium||[]).length}</span></div>
+        <div class="detail-row"><span class="key">Low Severity</span><span class="val" style="color:var(--accent)">${(diag.issues_summary?.low||[]).length}</span></div>
+      </div>
+      <div class="detail-panel">
+        <h4>Repairs Applied</h4>
+        <div class="detail-row"><span class="key">Actions Taken</span><span class="val">${(repair.repair_log||[]).length}</span></div>
+        <div class="detail-row"><span class="key">Rows After</span><span class="val">${repair.repaired_shape?.rows || '—'}</span></div>
+        <div class="detail-row"><span class="key">Columns After</span><span class="val">${repair.repaired_shape?.columns || '—'}</span></div>
+      </div>
+      <div class="detail-panel">
+        <h4>Model Improvement</h4>
+        ${improvHtml || '<div class="detail-row"><span class="key">Status</span><span class="val">No comparison available</span></div>'}
+      </div>
+    </div>
+
+    <div class="action-bar" style="margin-top:24px;">
+      <a class="btn btn-primary" href="/api/download_repaired?session_id=${state.sessionId}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download Repaired Dataset
+      </a>
+      <button class="btn btn-secondary" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="2" width="12" height="20" rx="2" ry="2"/>
+          <line x1="10" y1="6" x2="14" y2="6"/>
+          <line x1="10" y1="10" x2="14" y2="10"/>
+          <line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+        Print Report
+      </button>
+      <button class="btn btn-secondary" onclick="startOver()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        Analyse Another Dataset
+      </button>
+    </div>
+  `;
+}
+
+function startOver() {
+  state = { sessionId: null, filename: null, diagnosticsData: null, repairData: null, evaluationData: null, completedSteps: new Set() };
+  document.querySelectorAll('.step-btn').forEach(btn => { btn.classList.remove('completed', 'active'); });
+  document.getElementById('step-btn-1').classList.add('active');
+  document.getElementById('upload-result').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  goToStep(1);
+}
+
+// ── LOADING ──
+function showLoading(title, sub, steps) {
+  document.getElementById('progress-title').textContent = title;
+  document.getElementById('progress-sub').textContent = sub;
+  let stepsHtml = '';
+  if (steps) {
+    steps.forEach((s, i) => {
+      stepsHtml += `<div class="progress-step" id="ps-${i}">⬜ ${s}</div>`;
+    });
+    // Animate steps
+    let i = 0;
+    window._stepInterval = setInterval(() => {
+      if (i > 0) document.getElementById('ps-'+(i-1))?.classList.add('done');
+      if (i < steps.length) { document.getElementById('ps-'+i)?.classList.add('active'); i++; }
+      else clearInterval(window._stepInterval);
+    }, 600);
+  }
+  document.getElementById('progress-steps').innerHTML = stepsHtml;
+  document.getElementById('progress-overlay').classList.add('show');
+}
+function hideLoading() {
+  clearInterval(window._stepInterval);
+  document.getElementById('progress-overlay').classList.remove('show');
+}
+
+// ── TOAST ──
+// ── ENCODING HELP MODAL ──
+function showEncodingHelp() {
+  document.getElementById('encoding-help-modal').style.display = 'flex';
+}
+
+function closeEncodingHelp() {
+  document.getElementById('encoding-help-modal').style.display = 'none';
+}
+
+// ── SPLASH SCREEN ──
+function hideSplashScreen() {
+  const splashScreen = document.getElementById('splash-screen');
+  if (splashScreen) {
+    splashScreen.classList.add('hidden');
+    setTimeout(() => {
+      splashScreen.style.display = 'none';
+    }, 800);
+  }
+}
+
+// Hide splash screen after page load
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    hideSplashScreen();
+  }, 2500); // Show for 2.5 seconds
+});
+
+// Also hide on click for faster navigation
+document.addEventListener('DOMContentLoaded', () => {
+  const splashScreen = document.getElementById('splash-screen');
+  if (splashScreen) {
+    splashScreen.addEventListener('click', () => {
+      hideSplashScreen();
+    });
+  }
+});
+
+// ── TOAST ──
+function showToast(msg, type='success') {
+  const tc = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icon = type === 'success' 
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  
+  t.innerHTML = `<span>${icon}</span> ${msg}`;
+  
+  tc.appendChild(t);
+  setTimeout(() => t.remove(), 6000);
+}
+</script>
+</body>
+</html>
