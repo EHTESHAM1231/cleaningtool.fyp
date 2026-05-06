@@ -42,6 +42,7 @@ def fig_to_b64(fig):
     buf.seek(0)
     img_b64 = base64.b64encode(buf.read()).decode('utf-8')
     plt.close(fig)
+    plt.close('all')  # belt-and-braces: prevent fig cache growth across requests
     return img_b64
 
 def plot_missing_values(missing_data):
